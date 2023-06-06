@@ -21,6 +21,23 @@ library(waiter)
                            year = 2020) |>
     select(zcta = ZCTA5CE20) |>
     st_transform(5072)
+
+  d_slider_t <- left_join(oh_tracts, d.fit, by = 'census_tract_fips')
+
+  d_slider_z <- sf::st_join(oh_zips, d_slider_t, join = st_overlaps) |>
+    rbind(sf::st_join(oh_zips, d_slider_t, join = st_covered_by)) |>
+    st_drop_geometry()
+
+  d_slider_z_fin <- rbind(
+    d_slider_z |>
+      group_by(zcta) |>
+      slice_min(predicted),
+    d_slider_z |>
+      group_by(zcta) |>
+      slice_max(predicted)
+  )
+
+
 }
 
 ui <- page_fillable(
@@ -47,11 +64,20 @@ ui <- page_fillable(
     sidebar = sidebar(
       width = '20%',
 
-      sliderInput('slider', "Select Threshold:",
-                  min = 0,
-                  max = .1,
-                  step = 0.005,
-                  value = 0.05),
+      histoslider::input_histoslider("slider",
+                                     "Select Threshold: ",
+                                     d_slider_z_fin$predicted,
+                                     start = 0,
+                                     end = 0.1,
+                                     breaks = seq(0, .34, by = 0.01)
+      ),
+
+
+      # sliderInput('slider', "Select Threshold:",
+      #             min = 0,
+      #             max = .1,
+      #             step = 0.005,
+      #             value = 0.05),
       hr(),
       gt_output('table')
     ),
@@ -74,7 +100,7 @@ server <- function(input, output, session) {
                   color = transparent(.5))
 
   cut_off <- reactive({
-    input$slider
+    input$slider[[2]]
   })
 
   observe({
@@ -127,8 +153,7 @@ server <- function(input, output, session) {
       mutate(hr_cat = case_when(
         risk.pred == "high" ~ "Predicted high risk",
         risk.pred == "low" & risk.measured == "high" ~ "Predicted low risk, measured high risk",
-        risk.pred == "low" & risk.measured == "low" ~ "Low risk"
-      )
+        risk.pred == "low" & risk.measured == "low" ~ "Low risk")
       )
 
     output$map <- renderLeaflet({
@@ -162,7 +187,7 @@ server <- function(input, output, session) {
                   values = ~hr_cat,
                   title = "Category")
 
-     # w$hide()
+      #w$hide()
 
       map
 
