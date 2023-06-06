@@ -162,7 +162,7 @@ server <- function(input, output, session) {
                   values = ~hr_cat,
                   title = "Category")
 
-      w$hide()
+     # w$hide()
 
       map
 
@@ -170,7 +170,7 @@ server <- function(input, output, session) {
 
     output$table <- render_gt({
 
-      nhgis.in <- read_csv("nhgis0033_ds254_20215_zcta.csv")
+      nhgis.in <- read_csv("nhgis0033_ds254_20215_zcta.csv", show_col_types = F)
 
       n_pop_under_5.nhgis2021 <- nhgis.in |>
         transmute(zcta = ZCTA5A,
@@ -181,14 +181,17 @@ server <- function(input, output, session) {
         left_join(n_pop_under_5.nhgis2021, by = "zcta") |>
         st_drop_geometry() |>
         group_by(hr_cat) |>
-        summarize(n_pop_under_5 = sum(n_pop_under_5)) |>
-        mutate(pct = round(n_pop_under_5 / sum(n_pop_under_5) * 100 )) |>
+        summarize(n_pop_under_5 = sum(n_pop_under_5),
+                  n_zctas_cat = n()) |>
+        mutate(pct_kids = round(n_pop_under_5 / sum(n_pop_under_5) * 100 ),
+               pct_zctas = round(n_zctas_cat / n_distinct(oh_zips_predrisk$zcta)*100)) |>
+        relocate(pct_kids, .before = n_zctas_cat) |>
         gt() |>
         tab_header(title = "Summary") |>
         fmt_number(use_seps = T,
-                   columns = n_pop_under_5,
+                   columns = c(n_pop_under_5, n_zctas_cat),
                    decimals = 0) |>
-        fmt_percent(columns = pct,
+        fmt_percent(columns = c(pct_kids, pct_zctas),
                     decimals = 0,
                     scale_values = F) |>
         tab_style(
@@ -220,7 +223,9 @@ server <- function(input, output, session) {
         ) |>
         cols_label(hr_cat = "Category",
                    n_pop_under_5 = "Total Kids <5",
-                   pct = "Percent")
+                   pct_kids = "Percent",
+                   n_zctas_cat = "Number of ZCTAs",
+                   pct_zctas = "Percent")
 
     })
 
