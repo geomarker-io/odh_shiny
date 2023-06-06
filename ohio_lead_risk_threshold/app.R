@@ -55,9 +55,9 @@ ui <- page_fillable(
 
   use_waiter(),
 
-  title = "ODH Blood Lead At-Risk Zip Codes",
+  title = "Ohio Lead Risk Threshold",
 
-  h2("ODH Blood Lead At-Risk Zip Codes", class = "bg-dark p-2 mb-0"),
+  h2("Ohio Led Risk Thresholds", class = "bg-dark p-2 mb-0"),
 
   layout_sidebar(
 
