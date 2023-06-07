@@ -22,20 +22,24 @@ library(waiter)
     select(zcta = ZCTA5CE20) |>
     st_transform(5072)
 
-  d_slider_t <- left_join(oh_tracts, d.fit, by = 'census_tract_fips')
+  d_slider <- d.fit |>
+    mutate(pred_pct = round(predicted*100,2))
 
-  d_slider_z <- sf::st_join(oh_zips, d_slider_t, join = st_overlaps) |>
-    rbind(sf::st_join(oh_zips, d_slider_t, join = st_covered_by)) |>
-    st_drop_geometry()
-
-  d_slider_z_fin <- rbind(
-    d_slider_z |>
-      group_by(zcta) |>
-      slice_min(predicted),
-    d_slider_z |>
-      group_by(zcta) |>
-      slice_max(predicted)
-  )
+  #
+  # d_slider_t <- left_join(oh_tracts, d.fit, by = 'census_tract_fips')
+  #
+  # d_slider_z <- sf::st_join(oh_zips, d_slider_t, join = st_overlaps) |>
+  #   rbind(sf::st_join(oh_zips, d_slider_t, join = st_covered_by)) |>
+  #   st_drop_geometry()
+  #
+  # d_slider_z_fin <- rbind(
+  #   d_slider_z |>
+  #     group_by(zcta) |>
+  #     slice_min(predicted),
+  #   d_slider_z |>
+  #     group_by(zcta) |>
+  #     slice_max(predicted)
+  # )
 
 
 }
@@ -57,19 +61,22 @@ ui <- page_fillable(
 
   title = "Ohio Lead Risk Threshold",
 
-  h2("Ohio Led Risk Thresholds", class = "bg-dark p-2 mb-0"),
+  h2("Ohio Lead Risk Thresholds", class = "bg-dark p-2 mb-0"),
 
   layout_sidebar(
 
     sidebar = sidebar(
       width = '20%',
 
+
       histoslider::input_histoslider("slider",
-                                     "Select Threshold: ",
-                                     d_slider_z_fin$predicted,
-                                     start = 0,
-                                     end = 0.1,
-                                     breaks = seq(0, .34, by = 0.01)
+                                     "Select Percent Children with Elevated Tests: ",
+                                     d_slider$pred_pct,
+                                     end = 10,
+                                     breaks = seq(0, 34, by = 1),
+                                     options = list(
+                                       selectedColor = "#ee1d25"
+                                     )
       ),
 
 
@@ -100,7 +107,7 @@ server <- function(input, output, session) {
                   color = transparent(.5))
 
   cut_off <- reactive({
-    input$slider[[2]]
+    input$slider[[2]]/100
   })
 
   observe({
