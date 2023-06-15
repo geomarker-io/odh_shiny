@@ -8,7 +8,11 @@ library(waiter)
 
 {
   options(tigris_use_cache = TRUE)
-  d.fit <- read_rds('tract_rates_obs_pred.rds')
+  #d.fit <- read_rds('tract_rates_obs_pred.rds')
+  d.fit <- read_csv('ODH_lead_ct_obs_pred.csv', show_col_types = F) |>
+    rename(observed = "fraction_elevated_measured",
+           predicted = "fraction_elevated_predicted") |>
+    mutate(census_tract_fips = as.character(census_tract_fips))
 
   # load ohio census tracts
   oh_tracts <- tigris::tracts('ohio',
@@ -23,7 +27,8 @@ library(waiter)
     st_transform(5072)
 
   d_slider <- d.fit |>
-    mutate(pred_pct = round(predicted*100,2))
+    mutate(pred_pct = round(predicted*100,2),
+           obs_pct = round(observed*100,2))
 
   #
   # d_slider_t <- left_join(oh_tracts, d.fit, by = 'census_tract_fips')
@@ -70,13 +75,17 @@ ui <- page_fillable(
 
 
       histoslider::input_histoslider("slider",
-                                     "Select Percent Children with Elevated Tests: ",
+                                     "Select Percent Predicted Children with Elevated Tests: ",
                                      d_slider$pred_pct,
                                      end = 10,
                                      breaks = seq(0, 34, by = 1),
                                      options = list(
                                        selectedColor = "#ee1d25"
                                      )
+      ),
+      splitLayout(
+      downloadButton('download_zcta', HTML("Download High Risk </br> ZCTAs")),
+      downloadButton('download_tract', HTML("Download High Risk </br> Census Tracts"))
       ),
 
 
@@ -162,6 +171,34 @@ server <- function(input, output, session) {
         risk.pred == "low" & risk.measured == "high" ~ "Predicted low risk, measured high risk",
         risk.pred == "low" & risk.measured == "low" ~ "Low risk")
       )
+
+    d_zip_down <- oh_zips_predrisk |>
+      sf::st_drop_geometry() |>
+      mutate(high_risk = ifelse(risk.pred == 'high' | risk.measured == 'high', TRUE, FALSE)) |>
+      select(zcta, high_risk)
+
+    output$download_zcta <- downloadHandler(
+      filename = function() {
+        paste("high_risk_zctas_", input$slider[[2]]/100, "_threshold.csv", sep = "")
+      },
+      content = function(file) {
+        write.csv(d_zip_down, file, row.names = FALSE)
+      }
+    )
+
+    d_tract_down <- d |>
+      sf::st_drop_geometry() |>
+      mutate(high_risk = ifelse(risk.pred == 'high' | risk.measured == 'high', TRUE, FALSE)) |>
+      select(census_tract_fips, high_risk)
+
+    output$download_tract <- downloadHandler(
+      filename = function() {
+        paste("high_risk_census_tracts_", input$slider[[2]]/100, "_threshold.csv", sep = "")
+      },
+      content = function(file) {
+        write.csv(d_tract_down, file, row.names = FALSE)
+      }
+    )
 
     output$map <- renderLeaflet({
 
