@@ -179,7 +179,7 @@ server <- function(input, output, session) {
 
     output$download_zcta <- downloadHandler(
       filename = function() {
-        paste("high_risk_zctas_", input$slider[[2]]/100, "_threshold.csv", sep = "")
+        paste("high_risk_zctas_", round(input$slider[[2]]/100,2), "_threshold.csv", sep = "")
       },
       content = function(file) {
         write.csv(d_zip_down, file, row.names = FALSE)
@@ -193,7 +193,7 @@ server <- function(input, output, session) {
 
     output$download_tract <- downloadHandler(
       filename = function() {
-        paste("high_risk_census_tracts_", input$slider[[2]]/100, "_threshold.csv", sep = "")
+        paste("high_risk_census_tracts_", round(input$slider[[2]]/100,2), "_threshold.csv", sep = "")
       },
       content = function(file) {
         write.csv(d_tract_down, file, row.names = FALSE)
