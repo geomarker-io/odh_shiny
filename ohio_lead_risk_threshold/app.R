@@ -16,13 +16,13 @@ library(waiter)
 
   # load ohio census tracts
   oh_tracts <- tigris::tracts('ohio',
-                              year = 2020) |>
+                              year = 2021) |>
     select(census_tract_fips = GEOID) |>
     st_transform(5072)
 
   # load ohio zip codes
   oh_zips <- tigris::zctas(starts_with = c('43', '44', '45'),
-                           year = 2020) |>
+                           year = 2021) |>
     select(zcta = ZCTA5CE20) |>
     st_transform(5072)
 
@@ -61,6 +61,10 @@ ui <- page_fillable(
     "btn-border-radius" = "0.25rem"
   ),
 
+  tags$style(
+    type='text/css', "#change_slider { width:100%; margin-top: 31px;}"
+  ),
+
 
   use_waiter(),
 
@@ -84,8 +88,20 @@ ui <- page_fillable(
                                      )
       ),
       splitLayout(
-      downloadButton('download_zcta', HTML("Download High Risk </br> ZCTAs")),
-      downloadButton('download_tract', HTML("Download High Risk </br> Census Tracts"))
+        numericInput('slider_input',
+                     "Enter a specific threshold:",
+                     value = 10,
+                     min = 0,
+                     max = 34,
+                     step = .01),
+        actionButton('change_slider',
+                     "Update Threshold",
+                     size = "md")
+      ),
+      hr(),
+      splitLayout(
+        downloadButton('download_zcta', HTML("Download High Risk </br> ZCTAs")),
+        downloadButton('download_tract', HTML("Download High Risk </br> Census Tracts"))
       ),
 
 
@@ -299,6 +315,19 @@ server <- function(input, output, session) {
     })
 
   })
+
+  observeEvent(input$change_slider, {
+    histoslider::update_histoslider(session = shiny::getDefaultReactiveDomain(),
+                                    "slider", end = input$slider_input)
+
+    cut_off <- reactive({
+      input$slider[[2]]/100
+    })
+
+
+  })
+
+
 }
 
 
