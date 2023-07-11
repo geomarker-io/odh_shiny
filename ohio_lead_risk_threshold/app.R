@@ -81,7 +81,7 @@ ui <- page_fillable(
       histoslider::input_histoslider("slider",
                                      "Select Percent Predicted Children with Elevated Tests: ",
                                      d_slider$pred_pct,
-                                     end = 10,
+                                     end = 6.35,
                                      breaks = seq(0, 34, by = 1),
                                      options = list(
                                        selectedColor = "#ee1d25"
@@ -90,7 +90,7 @@ ui <- page_fillable(
       splitLayout(
         numericInput('slider_input',
                      "Enter a specific threshold:",
-                     value = 10,
+                     value = 6.35,
                      min = 0,
                      max = 34,
                      step = .01),
